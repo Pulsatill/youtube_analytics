@@ -3,47 +3,47 @@ import json
 
 from googleapiclient.discovery import build
 
-# перехват ключа из окружения, для работы с API
-api_key: str = os.getenv('API_YouTube')
-
-# специальный объект для работы с API
-youtube = build('youtube', 'v3', developerKey=api_key)
-
 
 # класс YouTube, который позволяет узнать название канала, автора и другую информацию о канале
 class YouTube:
 
     def __init__(self, id):
-        self.id = id
-        self.title = None
-        self.description = None
-        self.country = None
-        self.custom_url = None
-
-    def print_info(self):
-        """
-
-        :return: возвращает информацию о канале в формате json
-        и выводит на экран эту информацию
-        """
-        json_info = []
+        self.__id = id
+        # переменная для вызова метода класса с API
+        youtube = self.get_service()
+        # переменная для сбора статистики канала
         channel = youtube.channels().list(id=self.id, part='snippet,statistics').execute()
-        channel_information = json.dumps(channel, indent=2, ensure_ascii=False)
-        json_info.append(channel_information)
-        print(channel_information)
+        # атрибуты экземпляра инициализируются через полученую переменную
+        self.title = channel["items"][0]["snippet"]["title"]
+        self.description = channel["items"][0]["snippet"]["description"]
+        self.country = channel["items"][0]["snippet"]["country"]
+        self.subs_count = channel["items"][0]["statistics"]["subscriberCount"]
+        self.video_count = channel["items"][0]["statistics"]["videoCount"]
+        self.view_count = channel["items"][0]["statistics"]["viewCount"]
+        self.custom_url = 'https://www.youtube.com/' + channel["items"][0]["snippet"]["customUrl"]
 
-        return json_info
+    @property
+    def id(self):
+        return self.__id
 
-    def channel_title(self, json_info=None):
-        """
-        :param json_info: извлекается с помощью модуля print_info()
-        :return: извлекает объявленные атрибуты класса
-        """
-        if json_info is None:
-            json_info = self.print_info()
-        for i in json_info:
-            self.title = i.get("title")
-            self.description = i.get("description")
-            self.country = i.get("country")
-            self.custom_url = i.get("customUrl")
-        return self.title, self.description, self.country, self.custom_url
+    @classmethod
+    def get_service(cls):
+        # перехват ключа из окружения, для работы с API
+        api_key: str = os.getenv('API_YouTube')
+        # специальный объект для работы с API
+        youtube = build('youtube', 'v3', developerKey=api_key)
+        return youtube
+
+    def to_json(self):
+        data = {"title": self.title,
+                "id": self.id,
+                "description": self.description,
+                "country": self.country,
+                "Url": self.custom_url,
+                "video count": self.video_count,
+                "view count": self.view_count,
+                "subscribers count": self.subs_count}
+        file_name = self.id
+        with open(f"{file_name}.json", "w", encoding="UTF-8") as file:
+            json.dump(data, file, indent=2, ensure_ascii=False)
+        return print(f"Файл {self.title} создан")
