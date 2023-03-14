@@ -47,3 +47,15 @@ class YouTube:
         with open(f"{file_name}.json", "w", encoding="UTF-8") as file:
             json.dump(data, file, indent=2, ensure_ascii=False)
         return print(f"Файл {self.title} создан")
+
+    def __str__(self) -> str:
+        return f"Youtube-канал: {self.title}"
+
+    def __add__(self, other) -> int:
+        return self.subs_count + other.subs_count
+
+    def __lt__(self, other):
+        return self.subs_count < other.subs_count
+
+    def __gt__(self, other):
+        return self.subs_count > other.subs_count
