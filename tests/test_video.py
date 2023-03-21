@@ -44,5 +44,7 @@ def test_total_duration():
     assert duration.total_seconds() == 13261.0
 
 
-def test_show_best_video():
-    assert playlist1.show_best_video() == "https://youtu.be/9Bv2zltQKQA"
+def test_show_best_video(capsys):
+    playlist1.show_best_video()
+    stdout, stderr = capsys.readouterr()
+    assert stdout == "https://youtu.be/9Bv2zltQKQA\n"
