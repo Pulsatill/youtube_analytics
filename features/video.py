@@ -115,6 +115,4 @@ class PlayList(Video):
             if int(Video(v).video_likes) > int(max_video_likes):
                 max_video_likes = Video(v).video_likes
                 video_link = Video(v).video_url
-            else:
-                continue
         print(f"{video_link}")
