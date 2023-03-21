@@ -5,37 +5,38 @@ import isodate
 from googleapiclient.discovery import build, HttpError
 
 
-class GetEnv:
-
-    @classmethod
-    def get_service(cls):
-        # перехват ключа из окружения, для работы с API
-        api_key: str = os.getenv('API_YouTube')
-        # специальный объект для работы с API
-        youtube = build('youtube', 'v3', developerKey=api_key)
-        return youtube
+# перехват ключа из окружения, для работы с API
+api_key: str = os.getenv('API_YouTube')
+# специальный объект для работы с API
+youtube = build('youtube', 'v3', developerKey=api_key)
 
 
-class Video(GetEnv):
+class Video:
 
     def __init__(self, id):
         self.id = id
-        # переменная для вызова метода класса с API
-        youtube = self.get_service()
-        # переменная для сбора статистики канала
-        video = youtube.videos().list(id=self.id, part='snippet,statistics,contentDetails').execute()
-        self.video_title = video["items"][0]["snippet"]["title"]
-        self.video_views = video["items"][0]["statistics"]["viewCount"]
-        self.video_likes = video["items"][0]["statistics"]["likeCount"]
-        iso_8601_duration = video["items"][0]["contentDetails"]["duration"]
-        self.duration = isodate.parse_duration(iso_8601_duration)
-        self.video_url = 'https://youtu.be/' + id
+        try:
+            # переменная для сбора статистики канала
+            video = youtube.videos().list(id=self.id, part='snippet,statistics,contentDetails').execute()
+            self.video_title = video["items"][0]["snippet"]["title"]
+            self.video_views = video["items"][0]["statistics"]["viewCount"]
+            self.video_likes = video["items"][0]["statistics"]["likeCount"]
+            iso_8601_duration = video["items"][0]["contentDetails"]["duration"]
+            self.duration = isodate.parse_duration(iso_8601_duration)
+            self.video_url = 'https://youtu.be/' + id
+        except IndexError:
+            print("Ошибка в id видео")
+            self.video_title = None
+            self.video_views = None
+            self.video_likes = None
+            self.duration = None
+            self.video_url = None
 
     def __str__(self):
         return f"{self.video_title}"
 
 
-class PLVideo(Video, GetEnv):
+class PLVideo(Video):
 
     def __init__(self, id, playlist_id):
         super().__init__(id)
@@ -44,7 +45,6 @@ class PLVideo(Video, GetEnv):
 
     def get_playlist(self):
         try:
-            youtube = super().get_service()
             playlist = youtube.playlists().list(id=self.playlist_id,
                                                 part='snippet,contentDetails, status'
                                                 ).execute()
@@ -56,18 +56,26 @@ class PLVideo(Video, GetEnv):
         return f"{self.video_title} ({self.playlist_title})"
 
 
-class PlayList(Video, GetEnv):
+class PlayList(Video):
 
     def __init__(self, pl_id):
         """
         Инициализирует плейлист
         :param pl_id: id плейлиста
         """
-        self.pl_id = pl_id
+        self.__pl_id = pl_id
         playlist_title = self.get_pl_title(self.pl_id)
         self.pl_title = playlist_title['items'][0]['snippet']['title']
         self.url = 'https://www.youtube.com/playlist?list=' + pl_id
-        self.video_ids = self.get_data(self.pl_id)
+        self.__video_ids = self.get_data(self.pl_id)
+
+    @property
+    def pl_id(self):
+        return self.__pl_id
+
+    @property
+    def video_ids(self):
+        return self.__video_ids
 
     def __str__(self):
         return f"{self.pl_title} - {self.url}"
@@ -75,7 +83,6 @@ class PlayList(Video, GetEnv):
     @classmethod
     def get_pl_title(cls, pl_id):
         try:
-            youtube = super().get_service()
             playlist_title = youtube.playlists().list(id=pl_id,
                                                       part='snippet,contentDetails, status'
                                                       ).execute()
@@ -86,7 +93,6 @@ class PlayList(Video, GetEnv):
     @classmethod
     def get_data(cls, pl_id):
         try:
-            youtube = super().get_service()
             playlist_videos = youtube.playlistItems().list(playlistId=pl_id,
                                                            part='contentDetails',
                                                            maxResults=50,
@@ -112,4 +118,3 @@ class PlayList(Video, GetEnv):
             else:
                 continue
         print(f"{video_link}")
-        return f"{video_link}"
